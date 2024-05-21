@@ -21,7 +21,6 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import ticker
-%matplotlib inline
 
 
 from object_detection.metrics.tf_example_parser import BoundingBoxParser, StringParser, Int64Parser, FloatParser
