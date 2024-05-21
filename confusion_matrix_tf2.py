@@ -17,6 +17,12 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as viz_utils
 from object_detection.core import data_parser
 from object_detection.core import standard_fields as fields
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib import ticker
+%matplotlib inline
+
 
 from object_detection.metrics.tf_example_parser import BoundingBoxParser, StringParser, Int64Parser, FloatParser
 
@@ -187,6 +193,21 @@ def display(confusion_matrix, categories, output_path):
     '''
     print('\nConfusion Matrix:')
     print(confusion_matrix, '\n')
+  
+    num_classes = len(confusion_matrix)
+    
+    # Extract category names
+    category_names = [category['name'] for category in categories]
+    category_names.append("Background")  # Add "Background" category
+    
+    num_classes = len(confusion_matrix)
+    df_cm = pd.DataFrame(confusion_matrix, range(num_classes), range(num_classes))
+    sns.set(font_scale=1.4)  # for label size
+    sns.heatmap(df_cm, annot=True,fmt='g', annot_kws={"size": 16}, xticklabels=category_names, yticklabels=category_names)  # font size and category names
+    
+    plt.xlabel('Predicted label')
+    plt.ylabel('True label')
+    plt.show()
     results = []
 
     for i in range(len(categories)):
