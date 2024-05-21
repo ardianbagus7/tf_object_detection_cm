@@ -184,47 +184,61 @@ def process_detections(input_tfrecord_path, model, categories, draw_option, draw
     return confusion_matrix
     
 def display(confusion_matrix, categories, output_path):
-    '''
-    Displays confusion matrix as pandas df to terminal and saves as CSV
-    Args:
-      confusion_matrix: matrix to be displayed
-      categories: ordered array of class IDs
-      output_path: where to save CSV
-    '''
     print('\nConfusion Matrix:')
-    print(confusion_matrix, '\n')
-  
+    # print(confusion_matrix, '\n')
+
     num_classes = len(confusion_matrix)
-    
-    # Extract category names
     category_names = [category['name'] for category in categories]
-    category_names.append("Background")  # Add "Background" category
-    
-    num_classes = len(confusion_matrix)
+    category_names.append("Background")
+
     df_cm = pd.DataFrame(confusion_matrix, range(num_classes), range(num_classes))
-    sns.set(font_scale=1.4)  # for label size
-    sns.heatmap(df_cm, annot=True,fmt='g', annot_kws={"size": 16}, xticklabels=category_names, yticklabels=category_names)  # font size and category names
+    sns.set(font_scale=1.4)
+    sns.heatmap(df_cm, annot=True, fmt='g', annot_kws={"size": 16}, xticklabels=category_names, yticklabels=category_names)
     
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
     plt.show()
+
     results = []
 
     for i in range(len(categories)):
         id = categories[i]['id'] - 1
         name = categories[i]['name']
         
-        total_target = np.sum(confusion_matrix[id,:])
-        total_predicted = np.sum(confusion_matrix[:,id])
+        total_target = np.sum(confusion_matrix[id, :])
+        total_predicted = np.sum(confusion_matrix[:, id])
         
-        precision = float(confusion_matrix[id, id] / total_predicted)
-        recall = float(confusion_matrix[id, id] / total_target)
+        true_positive = confusion_matrix[id, id]
+        false_positive = total_predicted - true_positive
+        false_negative = total_target - true_positive
+        true_negative = np.sum(confusion_matrix) - (true_positive + false_positive + false_negative + true_positive)
         
-        results.append({'category' : name, f'precision_@{IOU_THRESHOLD}IOU' : precision, f'recall_@{IOU_THRESHOLD}IOU' : recall})
+        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0
+        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        accuracy = (true_positive + true_negative) / (true_positive + false_positive + false_negative + true_negative) if (true_positive + false_positive + false_negative + true_negative) > 0 else 0
+        
+        results.append({
+            'category': name, 
+            'TP': true_positive,
+            'FP': false_positive,
+            'FN': false_negative,
+            'TN': true_negative,
+            f'accuracy_@{IOU_THRESHOLD}IOU': accuracy, 
+            f'precision_@{IOU_THRESHOLD}IOU': precision, 
+            f'recall_@{IOU_THRESHOLD}IOU': recall,
+            f'f1-score_@{IOU_THRESHOLD}IOU': f1_score,
+        })
     
     df = pd.DataFrame(results)
     print(df)
+
+    # Calculate mean averages
+    mean_avg = df.mean(axis=0)
+    print("Mean Average:")
+    print(mean_avg)
     df.to_csv(output_path)
+
 
 def draw(image_name, image_path, image, categories, groundtruth_boxes, groundtruth_classes, detection_boxes, detection_classes, detection_scores):
     '''
