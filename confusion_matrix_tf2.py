@@ -184,7 +184,7 @@ def process_detections(input_tfrecord_path, model, categories, draw_option, draw
     
 def display(confusion_matrix, categories, output_path):
     print('\nConfusion Matrix:')
-    # print(confusion_matrix, '\n')
+    print(confusion_matrix, '\n')
 
     num_classes = len(confusion_matrix)
     category_names = [category['name'] for category in categories]
@@ -192,6 +192,7 @@ def display(confusion_matrix, categories, output_path):
 
     df_cm = pd.DataFrame(confusion_matrix, range(num_classes), range(num_classes))
     sns.set(font_scale=1.4)
+    plt.figure(figsize=(10, 7))
     sns.heatmap(df_cm, annot=True, fmt='g', annot_kws={"size": 16}, xticklabels=category_names, yticklabels=category_names)
     
     plt.xlabel('Predicted label')
@@ -210,33 +211,39 @@ def display(confusion_matrix, categories, output_path):
         true_positive = confusion_matrix[id, id]
         false_positive = total_predicted - true_positive
         false_negative = total_target - true_positive
-        true_negative = np.sum(confusion_matrix) - (true_positive + false_positive + false_negative + true_positive)
+        true_negative = np.sum(confusion_matrix) - (true_positive + false_positive + false_negative)
         
-        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0
-        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0
-        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        accuracy = (true_positive + true_negative) / (true_positive + false_positive + false_negative + true_negative) if (true_positive + false_positive + false_negative + true_negative) > 0 else 0
-        
+        accuracy = (true_positive + true_negative) / (true_positive + false_positive + false_negative + true_negative)
+        precision = true_positive / (true_positive + false_positive) 
+        recall = true_positive / (true_positive + false_negative) 
+        f1_score = 2 * (precision * recall) / (precision + recall)
+       
         results.append({
             'category': name, 
             'TP': true_positive,
             'FP': false_positive,
             'FN': false_negative,
             'TN': true_negative,
-            f'accuracy_@{IOU_THRESHOLD}IOU': accuracy, 
-            f'precision_@{IOU_THRESHOLD}IOU': precision, 
-            f'recall_@{IOU_THRESHOLD}IOU': recall,
-            f'f1-score_@{IOU_THRESHOLD}IOU': f1_score,
+            f'Accuracy': accuracy, 
+            f'Precision': precision, 
+            f'Recall': recall,
+            f'F1-Score': f1_score,
         })
     
     df = pd.DataFrame(results)
     print(df)
 
-    # Calculate mean averages
-    mean_avg = df.mean(axis=0)
-    print("Mean Average:")
-    print(mean_avg)
+    # Calculate mean averages for the specific columns 6, 7, 8, and 9
+    mean_avg = df.iloc[:, 5:9].mean()
+    print("\nMean Average:")
+    print("Accuracy: ", mean_avg[f'Accuracy'])
+    print("Precision: ", mean_avg[f'Precision'])
+    print("Recall: ", mean_avg[f'Recall'])
+    print("F1-score: ", mean_avg[f'F1-Score'])
+   
+    
     df.to_csv(output_path)
+    df_cm.to_csv(output_path+".real.csv")
 
 
 def draw(image_name, image_path, image, categories, groundtruth_boxes, groundtruth_classes, detection_boxes, detection_classes, detection_scores):
